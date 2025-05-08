@@ -6,10 +6,15 @@
 #include <stack>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <cmath>
 #include <chrono>
 #include <algorithm>
 #include <limits>
+#include <iomanip>
+
+//Hashim Abdulla 
+//Program 1 (REVISED)
 
 using namespace std;
 using namespace std::chrono;
@@ -92,7 +97,7 @@ vector<string> bruteForceSearch(const string& start, const string& end) {
 vector<string> bfsSearch(const string& start, const string& end) {
     queue<vector<string>> paths;
     paths.push({start});
-    unordered_map<string, bool> visited;
+    unordered_set<string> visited;
 
     while (!paths.empty()) {
         vector<string> currentPath = paths.front();
@@ -103,8 +108,8 @@ vector<string> bfsSearch(const string& start, const string& end) {
             return currentPath;
         }
 
-        if (!visited[lastTown]) {
-            visited[lastTown] = true;
+        if (visited.find(lastTown) == visited.end()) {
+            visited.insert(lastTown);
             for (const Edge& edge : adjacencyList[lastTown]) {
                 vector<string> newPath = currentPath;
                 newPath.push_back(edge.dest);
@@ -119,7 +124,7 @@ vector<string> bfsSearch(const string& start, const string& end) {
 vector<string> dfsSearch(const string& start, const string& end) {
     stack<vector<string>> paths;
     paths.push({start});
-    unordered_map<string, bool> visited;
+    unordered_set<string> visited;
 
     while (!paths.empty()) {
         vector<string> currentPath = paths.top();
@@ -130,8 +135,8 @@ vector<string> dfsSearch(const string& start, const string& end) {
             return currentPath;
         }
 
-        if (!visited[lastTown]) {
-            visited[lastTown] = true;
+        if (visited.find(lastTown) == visited.end()) {
+            visited.insert(lastTown);
             for (const Edge& edge : adjacencyList[lastTown]) {
                 vector<string> newPath = currentPath;
                 newPath.push_back(edge.dest);
@@ -143,12 +148,11 @@ vector<string> dfsSearch(const string& start, const string& end) {
 }
 
 // Iterative Deepening DFS (ID-DFS)
-vector<string> idDfsSearch(const string& start, const string& end) {
-    int depth = 0;
-    while (true) {
+vector<string> idDfsSearch(const string& start, const string& end, int maxDepth = 100) {
+    for (int depth = 0; depth <= maxDepth; depth++) {
         stack<vector<string>> paths;
         paths.push({start});
-        unordered_map<string, bool> visited;
+        unordered_set<string> visited;
 
         while (!paths.empty()) {
             vector<string> currentPath = paths.top();
@@ -159,8 +163,8 @@ vector<string> idDfsSearch(const string& start, const string& end) {
                 return currentPath;
             }
 
-            if (currentPath.size() <= depth && !visited[lastTown]) {
-                visited[lastTown] = true;
+            if (currentPath.size() <= depth && visited.find(lastTown) == visited.end()) {
+                visited.insert(lastTown);
                 for (const Edge& edge : adjacencyList[lastTown]) {
                     vector<string> newPath = currentPath;
                     newPath.push_back(edge.dest);
@@ -168,7 +172,6 @@ vector<string> idDfsSearch(const string& start, const string& end) {
                 }
             }
         }
-        depth++;
     }
     return {};
 }
@@ -181,7 +184,7 @@ vector<string> bestFirstSearch(const string& start, const string& end) {
 
     priority_queue<pair<double, vector<string>>, vector<pair<double, vector<string>>>, greater<>> pq;
     pq.push({heuristic(start), {start}});
-    unordered_map<string, bool> visited;
+    unordered_set<string> visited;
 
     while (!pq.empty()) {
         auto [_, currentPath] = pq.top();
@@ -192,8 +195,8 @@ vector<string> bestFirstSearch(const string& start, const string& end) {
             return currentPath;
         }
 
-        if (!visited[lastTown]) {
-            visited[lastTown] = true;
+        if (visited.find(lastTown) == visited.end()) {
+            visited.insert(lastTown);
             for (const Edge& edge : adjacencyList[lastTown]) {
                 vector<string> newPath = currentPath;
                 newPath.push_back(edge.dest);
@@ -226,7 +229,7 @@ vector<string> aStarSearch(const string& start, const string& end) {
 
         for (const Edge& edge : adjacencyList[lastTown]) {
             double newCost = costSoFar[lastTown] + edge.distance;
-            if (!costSoFar.count(edge.dest) || newCost < costSoFar[edge.dest]) {
+            if (costSoFar.find(edge.dest) == costSoFar.end() || newCost < costSoFar[edge.dest]) {
                 costSoFar[edge.dest] = newCost;
                 vector<string> newPath = currentPath;
                 newPath.push_back(edge.dest);
@@ -268,6 +271,32 @@ double calculateTotalDistance(const vector<string>& path) {
     return totalDistance;
 }
 
+// Function to print the path
+void printPath(const vector<string>& path, double totalDistance, double executionTime) {
+    if (path.empty()) {
+        cout << "No path found.\n";
+        return;
+    }
+
+    cout << "Path found: ";
+    for (size_t i = 0; i < path.size(); i++) {
+        cout << path[i];
+        if (i < path.size() - 1) {
+            cout << " -> ";
+        }
+    }
+    cout << "\nTotal distance: " << fixed << setprecision(4) << totalDistance << " units\n";
+
+    // Use the most appropriate time unit (nanoseconds, microseconds, or milliseconds)
+    if (executionTime < 1.0) {
+        cout << "Execution time: " << fixed << setprecision(2) << (executionTime * 1000000) << " ns\n";
+    } else if (executionTime < 1000.0) {
+        cout << "Execution time: " << fixed << setprecision(2) << (executionTime * 1000) << " μs\n";
+    } else {
+        cout << "Execution time: " << fixed << setprecision(2) << executionTime << " ms\n";
+    }
+}
+
 int main() {
     // Load data
     loadTowns("coordinates.csv");
@@ -277,7 +306,7 @@ int main() {
         displayMenu();
         int choice;
         cout << "Enter your choice: ";
-        
+
         // Check if input is a valid integer
         if (!(cin >> choice)) {
             cin.clear(); // Clear error flags
@@ -285,7 +314,7 @@ int main() {
             cout << "Invalid input. Please enter a number between 1 and 7.\n";
             continue;
         }
-        
+
         // Check if choice is in valid range
         if (choice < 1 || choice > 7) {
             cout << "Invalid choice. Please enter a number between 1 and 7.\n";
@@ -309,6 +338,7 @@ int main() {
         }
 
         vector<string> path;
+        // Use high precision timing with microseconds
         auto startTime = high_resolution_clock::now();
 
         switch (choice) {
@@ -336,18 +366,11 @@ int main() {
         }
 
         auto endTime = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(endTime - startTime);
+        // Calculate duration in milliseconds but with double precision to capture smaller values
+        double duration = duration_cast<nanoseconds>(endTime - startTime).count() / 1000000.0;
 
-        if (path.empty()) {
-            cout << "No path found.\n";
-        } else {
-            cout << "Path found: ";
-            for (const string& town : path) {
-                cout << town << " -> ";
-            }
-            cout << "\nTotal distance: " << calculateTotalDistance(path) << " units\n";
-        }
-        cout << "Execution time: " << duration.count() << " ms\n";
+        double totalDistance = calculateTotalDistance(path);
+        printPath(path, totalDistance, duration);
     }
 
     return 0;
